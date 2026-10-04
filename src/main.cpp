@@ -1,15 +1,3 @@
-// Auto Decorator - Geode mod (Geode v4 / GD 2.2074). No AI, no network.
-// NOT compiled or tested. Some API names may need small tweaks for your SDK version.
-//
-// Two ways to use it:
-//  A) SELECTION MODE (recommended): select a few decoration objects you like,
-//     click AI, press Decorate. Copies of those objects get scattered around your level.
-//  B) THEME MODE: select nothing, type a theme word (forest, space, neon, ...).
-//     Uses the ID lists in THEMES below.
-//
-// !! The object IDs in THEMES are PLACEHOLDER GUESSES. Replace them with real
-// !! decoration IDs (select an object in the editor and open its edit panel to see the ID).
-
 #include <Geode/Geode.hpp>
 #include <Geode/modify/EditorUI.hpp>
 #include <map>
@@ -18,10 +6,11 @@
 
 using namespace geode::prelude;
 
+// NOTE: IDs below are PLACEHOLDERS. Use "select deco objects, then press Decorate" instead.
 struct Theme {
-    std::vector<std::string> keywords;  // words in your prompt that pick this theme
-    std::vector<int> ids;               // object IDs it may place
-    float density;                      // 0..1 chance to decorate near each existing object
+    std::vector<std::string> keywords;
+    std::vector<int> ids;
+    float density;
     float minScale, maxScale;
     bool randomRot;
 };
@@ -45,7 +34,6 @@ static void decorate(
 ) {
     std::mt19937 rng{std::random_device{}()};
 
-    // 1) Collect anchor positions first (don't modify the object list while iterating).
     std::vector<CCPoint> anchors;
     for (auto obj : CCArrayExt<GameObject*>(lel->m_objects)) {
         if (exclude.count(obj)) continue;
@@ -57,7 +45,7 @@ static void decorate(
     auto place = [&](CCPoint pos) {
         if (placed >= maxObjs) return;
         int id = palette[rng() % palette.size()];
-        auto obj = lel->createObject(id, pos, true);  // true = register undo
+        auto obj = lel->createObject(id, pos, true);
         if (!obj) return;
         float s = t.minScale + rand01(rng) * (t.maxScale - t.minScale);
         obj->setScale(s);
@@ -65,7 +53,6 @@ static void decorate(
         placed++;
     };
 
-    // 2) Decorate near existing objects: above or below, never right on top of them.
     for (auto& a : anchors) {
         if (rand01(rng) > t.density) continue;
         float side = rand01(rng) < 0.5f ? -1.f : 1.f;
@@ -74,7 +61,6 @@ static void decorate(
         place(ccp(a.x + dx, a.y + dy));
     }
 
-    // 3) Background sprinkle across the whole view so empty areas aren't bare.
     int sprinkle = maxObjs / 5;
     for (int i = 0; i < sprinkle; i++) {
         place(ccp(
@@ -86,12 +72,13 @@ static void decorate(
     Notification::create(fmt::format("Placed {} objects", placed), NotificationIcon::Success)->show();
 }
 
-class DecoratePopup : public geode::Popup<EditorUI*> {
+class DecoratePopup : public geode::Popup {
 protected:
     EditorUI* m_ui = nullptr;
     TextInput* m_input = nullptr;
 
-    bool setup(EditorUI* ui) override {
+    bool init(EditorUI* ui) {
+        if (!Popup::init(380.f, 160.f)) return false;
         m_ui = ui;
         this->setTitle("Auto Decorator");
 
@@ -109,16 +96,14 @@ protected:
         auto lel = m_ui->m_editorLayer;
         int maxObjs = (int)Mod::get()->getSettingValue<int64_t>("max-objects");
 
-        // Area = what the camera currently shows.
         auto cam = lel->m_objectLayer->getPosition();
         auto win = CCDirector::get()->getWinSize();
         CCRect area(-cam.x, -cam.y, win.width, win.height);
 
         std::vector<int> palette;
         std::set<GameObject*> exclude;
-        Theme t{{}, {}, 0.4f, 0.6f, 1.4f, true};  // defaults for selection mode
+        Theme t{{}, {}, 0.4f, 0.6f, 1.4f, true};
 
-        // Selection mode: selected objects ARE the palette.
         if (auto sel = m_ui->getSelectedObjects()) {
             for (auto obj : CCArrayExt<GameObject*>(sel)) {
                 palette.push_back(obj->m_objectID);
@@ -126,7 +111,6 @@ protected:
             }
         }
 
-        // Theme mode: match keywords in the prompt.
         if (palette.empty()) {
             std::string prompt = m_input->getString();
             std::transform(prompt.begin(), prompt.end(), prompt.begin(), ::tolower);
@@ -134,7 +118,7 @@ protected:
             for (auto& [name, theme] : THEMES) {
                 for (auto& kw : theme.keywords) {
                     if (prompt.find(kw) == std::string::npos) continue;
-                    if (!matched) t = theme;  // first match sets density/scale/rotation
+                    if (!matched) t = theme;
                     palette.insert(palette.end(), theme.ids.begin(), theme.ids.end());
                     matched = true;
                     break;
@@ -157,7 +141,7 @@ protected:
 public:
     static DecoratePopup* create(EditorUI* ui) {
         auto ret = new DecoratePopup();
-        if (ret->initAnchored(380.f, 160.f, ui)) {
+        if (ret->init(ui)) {
             ret->autorelease();
             return ret;
         }
