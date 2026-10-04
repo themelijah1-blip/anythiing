@@ -1,9 +1,7 @@
 {
-  "geode": "4.0.0",
+  "geode": "5.10.1",
   "gd": {
-    "win": "2.2074",
-    "android": "2.2074",
-    "mac": "2.2074"
+    "win": "2.2081"
   },
   "id": "yourname.auto-decorator",
   "name": "Auto Decorator",
@@ -16,7 +14,7 @@
       "name": "Max objects per use",
       "default": 150,
       "min": 10,
-      "max": 500
+      "max": 50000
     }
   }
 }
