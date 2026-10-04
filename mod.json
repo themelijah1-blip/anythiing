@@ -1,0 +1,22 @@
+{
+  "geode": "4.0.0",
+  "gd": {
+    "win": "2.2074",
+    "android": "2.2074",
+    "mac": "2.2074"
+  },
+  "id": "yourname.auto-decorator",
+  "name": "Auto Decorator",
+  "version": "v0.2.0",
+  "developer": "yourname",
+  "description": "Type a theme in the editor and decoration is scattered around your level. Free, offline, no AI or API key.",
+  "settings": {
+    "max-objects": {
+      "type": "int",
+      "name": "Max objects per use",
+      "default": 150,
+      "min": 10,
+      "max": 500
+    }
+  }
+}
